@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Todo App</title>
+    <script src="./public/main.js"></script>
+    <style>
+        /* Fonts Import  */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;400&display=swap');
+
+
+        :root {
+            --bs1: rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            border-radius: 0;
+            box-sizing: border-box;
+            border: 0;
+            outline: none;
+        }
+
+        html {
+            font-family: 'Poppins', sans-serif;
+        }
+
+        header {
+            text-align: center;
+            margin-top: 50px;
+            font-size: 2rem;
+        }
+
+        main {
+            width: 40%;
+            margin: auto;
+            display: flex;
+            border: 2px solid black;
+            flex-direction: column;
+            padding: 2rem;
+            box-shadow: var(--bs1);
+        }
+
+        main h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .spacer {
+            width: 100%;
+            background-color: black;
+            height: 2px;
+            margin: 0.5rem 0rem;
+        }
+
+        .todo-form {
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .todo-form .todo-input {
+            width: 100%;
+            font-size: 1.2rem;
+            padding: 0.2em;
+            border: 1px solid black;
+            box-shadow: var(--bs1);
+        }
+
+        .todo-form button {
+            padding: 0.2em;
+            font-size: 1.4rem;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 200;
+            width: 60%;
+            margin: auto;
+            background-color: black;
+            color: white;
+            box-shadow: var(--bs1);
+        }
+
+        .todos {
+            padding: 1rem;
+        }
+
+        .todo {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            padding: 0.2rem 1rem;
+            align-items: center;
+            border: 1px solid black;
+            box-shadow: var(--bs1);
+        }
+
+        .todo h4 {
+            font-size: 1.2rem;
+        }
+
+        .todo p {
+            margin-top: 0.2rem;
+            width: 80%;
+        }
+
+        .todo button {
+            padding: 0.2em 1em;
+            font-size: 1.1rem;
+            background-color: black;
+            color: white;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 200;
+        }
+
+        .completed h4,
+        .completed p {
+            text-decoration: line-through;
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;400&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <header>
+        <h1>To-Do's</h1>
+    </header>
+
+    <main>
+        <div class="todo-form">
+            <h3>Add a Todo</h3>
+            <label for="todo-title">Title:</label>
+            <input type="text" class="todo-input" id="todo-title" /><br>
+            <label for="todo-description">Description:</label>
+            <input type="text" class="todo-input" id="todo-description" /><br>
+            <button type="button" onclick="createATodo()">Create</button>
+        </div>
+
+        <div class="spacer"></div>
+
+        <div class="todos">
+            <h3>Todos</h3>
+            <span id="empty-todo-warning">No todos yet</span>
+            <div id="todo-list"></div>
+        </div>
+    </main>
+    <script>
+        async function createATodo() {
+            const title = document.getElementById("todo-title").value;
+            const description = document.getElementById("todo-description").value;
+            if (title === "" || description === "") {
+                alert("Please fill in all the fields");
+                return;
+            }
+            document.getElementById("todo-description").value = "";
+            document.getElementById("todo-title").value = "";
+            console.log(title, description);
+
+            const resp = await fetch("http://localhost:3000/todos", {
+                method: "post",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    title: title,
+                    description: description,
+                }),
+            });
+            const data = await resp.json();
+            const td = generateTodo(data);
+            const todoList = document.getElementById("todo-list");
+            const banner = document.getElementById("empty-todo-warning");
+            banner.innerHTML = "";
+            todoList.appendChild(td);
+        }
+
+        async function deleteTodo(id) {
+            const response = await fetch(`http://localhost:3000/todos/${id}`, { "method": "delete" });
+            if (response.ok) {
+                const todo = document.getElementById(id);
+                todo.setAttribute('class', 'completed todo');
+            }
+        }
+
+        function generateTodo(todo) {
+            const { title, description, id } = todo;
+            const td = document.createElement("td");
+            td.setAttribute("class", "todo");
+            td.setAttribute("id", id);
+            const infoContainer = document.createElement("div");
+            infoContainer.setAttribute("class", "todo-info");
+            const tdTitle = document.createElement("h4");
+            tdTitle.innerHTML = title;
+            const tdDesc = document.createElement("p");
+            tdDesc.innerHTML = description;
+            infoContainer.appendChild(tdTitle);
+            infoContainer.appendChild(tdDesc);
+            const tdDelete = document.createElement("button");
+            tdDelete.innerHTML = "Done";
+            tdDelete.setAttribute("onClick", `deleteTodo(${id})`);
+            tdDelete.setAttribute("class", "todo-button");
+            td.appendChild(infoContainer);
+            td.appendChild(tdDelete);
+            return td;
+        }
+
+        async function getAllTodos() {
+            const banner = document.getElementById("empty-todo-warning");
+            console.log(banner);
+            const todoList = document.getElementById("todo-list");
+            console.log(todoList);
+
+            const response = await fetch("http://localhost:3000/todos", {
+                method: "get",
+            });
+            const data = await response.json();
+            if (data.length === 0) {
+                return;
+            } else {
+                banner.innerText = "";
+            }
+            data.forEach((d) => {
+                const td = generateTodo(d);
+                todoList.append(td);
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", getAllTodos);
+
+    </script>
+</body>
+
+</html>
